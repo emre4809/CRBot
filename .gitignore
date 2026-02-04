@@ -38,10 +38,3 @@ runs/
 # =====================
 *accounts*
 *passes*
-*.txt.secret
-
-# =====================
-# OS junk
-# =====================
-.DS_Store
-Thumbs.db
