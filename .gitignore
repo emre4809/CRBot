@@ -1,0 +1,47 @@
+# =====================
+# Python cache
+# =====================
+__pycache__/
+*.pyc
+
+# =====================
+# Virtual environments
+# =====================
+.venv/
+venv/
+
+# =====================
+# VS Code settings
+# =====================
+.vscode/
+
+# =====================
+# Datasets & media
+# =====================
+dataset/
+datasets/
+gifs/
+**/*.jpg
+**/*.jpeg
+**/*.png
+**/*.webp
+**/*.mp4
+
+# =====================
+# YOLO / Ultralytics
+# =====================
+runs/
+*.pt
+
+# =====================
+# Secrets / credentials
+# =====================
+*accounts*
+*passes*
+*.txt.secret
+
+# =====================
+# OS junk
+# =====================
+.DS_Store
+Thumbs.db
