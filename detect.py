@@ -10,7 +10,7 @@ from ultralytics import YOLO
 model = YOLO("runs/detect/current_model/weights/best.pt")
 
 # Define the screen region to capture
-monitor = {"top": 40, "left": 685, "width": 555, "height": 1000}  # Update these according to your screen setup
+monitor = {"top": 40, "left": 735, "width": 555, "height": 780}  # Update these according to your screen setup
 
 with mss.mss() as sct:
     while True:
@@ -21,7 +21,7 @@ with mss.mss() as sct:
         frame = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2BGR)
 
         # Run YOLO inference on the selected screen region and detect troops
-        results = model.predict(source=frame, imgsz=960, conf=0.3, verbose=False)
+        results = model.predict(source=frame, imgsz=640, conf=0.3, verbose=False)
         annotated = results[0].plot()  # Draw boxes and labels
 
         # Show the annotated frame
