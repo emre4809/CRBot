@@ -4,7 +4,7 @@
 from ultralytics import YOLO
 
 # =====================
-# CHANGE THIS VALUE
+# CHANGE THIS VALUE FOR TRAINING
 # 0 = detection
 # 1 = classification
 # =====================

@@ -2,26 +2,26 @@ import pyautogui
 import numpy as np
 
 # Crown slot regions (x, y, width, height)
-MY_CROWN_REGION = (906, 536, 203, 64)
-ENEMY_CROWN_REGION = (905, 296, 209, 69)
+MY_CROWN_REGION = (911, 537, 198, 60)
+ENEMY_CROWN_REGION = (914, 299, 196, 61)
 
 # These pixel positions are all relative to the screenshot region defined above
 MY_CROWN_PIXELS = [
-    (36, 27),    # slot1 top
-    (26, 38),    # slot1 bottom
-    (96, 27),    # slot2 top
-    (86, 38),    # slot2 bottom
-    (156, 27),   # slot3 top
-    (146, 38)    # slot3 bottom
+    (33, 26),    # slot1 top
+    (27, 37),    # slot1 bottom
+    (96, 26),    # slot2 top
+    (90, 37),    # slot2 bottom
+    (159, 26),   # slot3 top
+    (153, 37)    # slot3 bottom
 ]
 
 ENEMY_CROWN_PIXELS = [
-    (37, 29),
-    (27, 40),
-    (97, 29),
-    (87, 40),
-    (157, 29),
-    (147, 40)
+    (30, 26),
+    (24, 37),
+    (93, 26),
+    (87, 37),
+    (156, 26),
+    (150, 37)
 ]
 
 # Color definitions (RGB). Friendly crowns are blue, enemy crowns are red. Both have yellow tops. Gray is defined for empty slots.
