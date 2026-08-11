@@ -1,10 +1,32 @@
 import os
+import re
 from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import CheckpointCallback
 from env import ClashRoyaleEnv
 
 CHECKPOINT_DIR = "checkpoints"
 TOTAL_TIMESTEPS = 500_000
+
+
+def _derive_replay_buffer_path(model_path):
+    """Derive the replay buffer path that SB3's CheckpointCallback (with
+    save_replay_buffer=True) would have saved alongside a given model
+    checkpoint, e.g. 'checkpoints/dqn_cr_50000_steps.zip' ->
+    'checkpoints/dqn_cr_replay_buffer_50000_steps.pkl'.
+
+    Falls back to '<model_basename>_replay_buffer.pkl' for saves that don't
+    follow the CheckpointCallback naming convention (e.g. the final model
+    saved as 'dqn_cr_final').
+    """
+    directory, filename = os.path.split(model_path)
+    base = filename[:-4] if filename.lower().endswith(".zip") else filename
+    match = re.match(r"^(.*)_(\d+)_steps$", base)
+    if match:
+        name_prefix, steps = match.groups()
+        buffer_name = f"{name_prefix}_replay_buffer_{steps}_steps.pkl"
+    else:
+        buffer_name = f"{base}_replay_buffer.pkl"
+    return os.path.join(directory, buffer_name)
 
 
 def train(resume_from=None):
@@ -15,11 +37,27 @@ def train(resume_from=None):
         save_freq=5_000,
         save_path=CHECKPOINT_DIR,
         name_prefix="dqn_cr",
+        save_replay_buffer=True,
     )
 
     if resume_from:
         model = DQN.load(resume_from, env=env)
         print(f"Resuming from {resume_from}")
+
+        replay_buffer_path = _derive_replay_buffer_path(resume_from)
+        if os.path.exists(replay_buffer_path):
+            model.load_replay_buffer(replay_buffer_path)
+            print(f"Loaded replay buffer from {replay_buffer_path}")
+        else:
+            print(f"No replay buffer found at {replay_buffer_path} — continuing with an empty buffer.")
+
+        remaining_timesteps = TOTAL_TIMESTEPS - model.num_timesteps
+        if remaining_timesteps <= 0:
+            print(
+                f"Resumed model already has {model.num_timesteps} timesteps, "
+                f"which meets or exceeds TOTAL_TIMESTEPS ({TOTAL_TIMESTEPS}). Skipping training."
+            )
+            return
     else:
         model = DQN(
             "MlpPolicy",
@@ -34,10 +72,28 @@ def train(resume_from=None):
             target_update_interval=500,
             verbose=1,
         )
+        remaining_timesteps = TOTAL_TIMESTEPS
 
-    model.learn(total_timesteps=TOTAL_TIMESTEPS, callback=checkpoint_callback, reset_num_timesteps=resume_from is None)
-    model.save(os.path.join(CHECKPOINT_DIR, "dqn_cr_final"))
-    print("Training complete. Final model saved.")
+    completed = False
+    try:
+        model.learn(
+            total_timesteps=remaining_timesteps,
+            callback=checkpoint_callback,
+            reset_num_timesteps=resume_from is None,
+        )
+        completed = True
+    except KeyboardInterrupt:
+        print("Training interrupted by user — saving before exit.")
+    except Exception as e:
+        print(f"Training crashed: {e} — saving before exit.")
+        raise
+    finally:
+        model.save(os.path.join(CHECKPOINT_DIR, "dqn_cr_final"))
+        model.save_replay_buffer(os.path.join(CHECKPOINT_DIR, "dqn_cr_final_replay_buffer"))
+        print("Model (and replay buffer) saved.")
+
+    if completed:
+        print("Training complete. Final model saved.")
 
 
 if __name__ == "__main__":
