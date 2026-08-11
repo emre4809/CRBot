@@ -1,70 +1,46 @@
-import time
-from classify import get_game_state
-from crowns import get_crown_counts
-from action import ARENA_BOUNDS, play_card
+import os
+from stable_baselines3 import DQN
+from stable_baselines3.common.callbacks import CheckpointCallback
+from env import ClashRoyaleEnv
 
-LOOP_INTERVAL = 1.0
-PLAY_COOLDOWN = 2.0
-
-ARENA_CX = (ARENA_BOUNDS[0] + ARENA_BOUNDS[2]) // 2
-ARENA_CY = (ARENA_BOUNDS[1] + ARENA_BOUNDS[3]) // 2
+CHECKPOINT_DIR = "checkpoints"
+TOTAL_TIMESTEPS = 500_000
 
 
-def pick_card(hand, elixir):
-    """Return slot index of the cheapest affordable card, or None."""
-    best_slot = None
-    best_cost = float("inf")
-    for i, card in enumerate(hand):
-        if card["cost"] <= elixir and card["cost"] < best_cost:
-            best_cost = card["cost"]
-            best_slot = i
-    return best_slot
+def train(resume_from=None):
+    os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+    env = ClashRoyaleEnv()
 
+    checkpoint_callback = CheckpointCallback(
+        save_freq=5_000,
+        save_path=CHECKPOINT_DIR,
+        name_prefix="dqn_cr",
+    )
 
-def run():
-    prev_my_crowns = 0
-    prev_enemy_crowns = 0
-    last_play_time = 0
-    print("Agent started. Press Ctrl+C to stop.")
+    if resume_from:
+        model = DQN.load(resume_from, env=env)
+        print(f"Resuming from {resume_from}")
+    else:
+        model = DQN(
+            "MlpPolicy",
+            env,
+            learning_rate=1e-4,
+            buffer_size=10_000,
+            learning_starts=1_000,
+            batch_size=32,
+            gamma=0.99,
+            exploration_fraction=0.2,
+            exploration_final_eps=0.05,
+            target_update_interval=500,
+            verbose=1,
+        )
 
-    while True:
-        try:
-            state = get_game_state()
-            my_crowns, enemy_crowns = get_crown_counts()
-
-            # Never let crown counts go down — detection can flicker to 0
-            my_crowns = max(my_crowns, prev_my_crowns)
-            enemy_crowns = max(enemy_crowns, prev_enemy_crowns)
-
-            if my_crowns > prev_my_crowns:
-                gained = (my_crowns - prev_my_crowns) * 50
-                print(f"*** CROWN GAINED! +{gained} ***")
-            if enemy_crowns > prev_enemy_crowns:
-                lost = (enemy_crowns - prev_enemy_crowns) * 50
-                print(f"*** ENEMY CROWN! -{lost} ***")
-            prev_my_crowns = my_crowns
-            prev_enemy_crowns = enemy_crowns
-
-            now = time.time()
-            crown_str = f"crowns(me={my_crowns} enemy={enemy_crowns})"
-
-            if now - last_play_time >= PLAY_COOLDOWN:
-                slot = pick_card(state["hand"], state["elixir"])
-                if slot is not None:
-                    card_name = state["hand"][slot]["name"]
-                    print(f"Playing slot {slot} ({card_name}) | elixir={state['elixir']} | {crown_str}")
-                    play_card(slot, ARENA_CX, ARENA_CY)
-                    last_play_time = now
-                else:
-                    print(f"Waiting for elixir | elixir={state['elixir']} | {crown_str}")
-            else:
-                print(f"Cooldown | elixir={state['elixir']} | {crown_str}")
-
-        except Exception as e:
-            print(f"Error: {e}")
-
-        time.sleep(LOOP_INTERVAL)
+    model.learn(total_timesteps=TOTAL_TIMESTEPS, callback=checkpoint_callback, reset_num_timesteps=resume_from is None)
+    model.save(os.path.join(CHECKPOINT_DIR, "dqn_cr_final"))
+    print("Training complete. Final model saved.")
 
 
 if __name__ == "__main__":
-    run()
+    import sys
+    resume = sys.argv[1] if len(sys.argv) > 1 else None
+    train(resume_from=resume)
