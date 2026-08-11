@@ -133,3 +133,75 @@ def test_obs_dtype_is_float32():
     env = make_env()
     obs, _ = env.reset()
     assert obs.dtype == np.float32
+
+
+def test_crowns_normalized_in_obs():
+    env = make_env()
+    mock_crowns.get_crown_counts.return_value = (2, 1)
+    obs, _ = env.reset()
+    assert obs[1] == pytest.approx(2 / 3)
+    assert obs[2] == pytest.approx(1 / 3)
+    mock_crowns.get_crown_counts.return_value = (0, 0)
+
+
+def test_reset_survives_game_state_failure():
+    env = make_env()
+    mock_classify.get_game_state.side_effect = RuntimeError("boom")
+    obs, info = env.reset()
+    assert obs.shape == (87,)
+    mock_classify.get_game_state.side_effect = None
+    mock_classify.get_game_state.return_value = _default_state
+
+
+def test_reset_survives_crown_counts_failure():
+    env = make_env()
+    mock_crowns.get_crown_counts.side_effect = RuntimeError("boom")
+    obs, info = env.reset()
+    assert obs.shape == (87,)
+    mock_crowns.get_crown_counts.side_effect = None
+    mock_crowns.get_crown_counts.return_value = (0, 0)
+
+
+def test_step_survives_game_state_failure():
+    env = make_env()
+    env.reset()
+    mock_classify.get_game_state.side_effect = RuntimeError("boom")
+    with patch("time.sleep"):
+        obs, reward, terminated, truncated, info = env.step(96)
+    assert obs.shape == (87,)
+    mock_classify.get_game_state.side_effect = None
+    mock_classify.get_game_state.return_value = _default_state
+
+
+def test_step_survives_get_troops_failure():
+    env = make_env()
+    env.reset()
+    mock_detect.get_troops.side_effect = RuntimeError("boom")
+    with patch("time.sleep"):
+        obs, reward, terminated, truncated, info = env.step(96)
+    assert obs.shape == (87,)
+    mock_detect.get_troops.side_effect = None
+    mock_detect.get_troops.return_value = []
+
+
+def test_step_survives_crown_counts_failure():
+    env = make_env()
+    env.reset()
+    mock_crowns.get_crown_counts.side_effect = RuntimeError("boom")
+    with patch("time.sleep"):
+        obs, reward, terminated, truncated, info = env.step(96)
+    assert obs.shape == (87,)
+    mock_crowns.get_crown_counts.side_effect = None
+    mock_crowns.get_crown_counts.return_value = (0, 0)
+
+
+def test_step_survives_play_card_failure():
+    env = make_env()
+    env.reset()
+    mock_action.play_card.side_effect = RuntimeError("boom")
+    with patch("time.sleep"):
+        # action 24 = card slot 1 (knight, cost 3), affordable -> triggers play_card
+        obs, reward, terminated, truncated, info = env.step(24)
+    assert obs.shape == (87,)
+    mock_action.play_card.side_effect = None
+    mock_action.play_card.return_value = True

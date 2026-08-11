@@ -40,12 +40,46 @@ class ClashRoyaleEnv(gym.Env):
         self._tracker = TroopTracker()
         self._prev_my_crowns = 0
         self._prev_enemy_crowns = 0
+        self._last_state = {
+            "elixir": 0,
+            "hand": [{"name": None, "cost": 0} for _ in range(4)],
+            "playable_cards": [],
+        }
+
+    def _safe_get_game_state(self):
+        try:
+            state = get_game_state()
+        except Exception as e:
+            print(f"[env] get_game_state() failed, reusing last known state: {e}")
+            return self._last_state
+        self._last_state = state
+        return state
+
+    def _safe_get_troops(self):
+        try:
+            return get_troops()
+        except Exception as e:
+            print(f"[env] get_troops() failed, assuming no troops detected: {e}")
+            return []
+
+    def _safe_get_crown_counts(self):
+        try:
+            return get_crown_counts()
+        except Exception as e:
+            print(f"[env] get_crown_counts() failed, reusing last known crowns: {e}")
+            return self._prev_my_crowns, self._prev_enemy_crowns
+
+    def _safe_play_card(self, card_slot, px, py):
+        try:
+            play_card(card_slot, px, py)
+        except Exception as e:
+            print(f"[env] play_card() failed, skipping action: {e}")
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self._tracker.clear()
-        state = get_game_state()
-        my_crowns, enemy_crowns = get_crown_counts()
+        state = self._safe_get_game_state()
+        my_crowns, enemy_crowns = self._safe_get_crown_counts()
         self._prev_my_crowns = my_crowns
         self._prev_enemy_crowns = enemy_crowns
         obs = self._build_obs(state, my_crowns, enemy_crowns)
@@ -56,16 +90,16 @@ class ClashRoyaleEnv(gym.Env):
             card_slot = action // N_GRID
             cell = action % N_GRID
             px, py = self._grid[cell]
-            state = get_game_state()
+            state = self._safe_get_game_state()
             card_name = state["hand"][card_slot]["name"]
             if card_name in state["playable_cards"]:
-                play_card(card_slot, px, py)
+                self._safe_play_card(card_slot, px, py)
 
         time.sleep(STEP_INTERVAL)
 
-        state = get_game_state()
-        detections = get_troops()
-        my_crowns, enemy_crowns = get_crown_counts()
+        state = self._safe_get_game_state()
+        detections = self._safe_get_troops()
+        my_crowns, enemy_crowns = self._safe_get_crown_counts()
 
         kills = self._tracker.update(detections, my_crowns, enemy_crowns)
 
@@ -86,8 +120,8 @@ class ClashRoyaleEnv(gym.Env):
     def _build_obs(self, state, my_crowns, enemy_crowns):
         obs = np.zeros(OBS_SIZE, dtype=np.float32)
         obs[0] = state["elixir"] / 10.0
-        obs[1] = float(my_crowns)
-        obs[2] = float(enemy_crowns)
+        obs[1] = my_crowns / 3.0
+        obs[2] = enemy_crowns / 3.0
         for i, card in enumerate(state["hand"][:4]):
             obs[3 + i] = card["cost"] / 9.0
         for i, t in enumerate(self._tracker.troops[:MAX_TROOPS]):
