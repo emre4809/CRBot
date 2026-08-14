@@ -31,10 +31,14 @@ mock_action = MagicMock()
 mock_action.play_card.return_value = True
 mock_action.ARENA_BOUNDS = (779, 473, 1251, 774)
 
+mock_match_end = MagicMock()
+mock_match_end.is_match_over.return_value = False
+
 sys.modules["detect"] = mock_detect
 sys.modules["classify"] = mock_classify
 sys.modules["crowns"] = mock_crowns
 sys.modules["action"] = mock_action
+sys.modules["match_end"] = mock_match_end
 
 from env import ClashRoyaleEnv, N_ACTIONS, N_GRID
 
@@ -104,21 +108,102 @@ def test_unaffordable_card_skips_play_card():
 def test_episode_terminates_at_3_my_crowns():
     env = make_env()
     env.reset()
-    mock_crowns.get_crown_counts.return_value = (3, 0)
+    mock_crowns.get_crown_counts.return_value = (3, 0)  # illustrative: a 3-0 win
+    mock_match_end.is_match_over.return_value = True
     with patch("time.sleep"):
         _, _, terminated, _, _ = env.step(96)
     assert terminated is True
     mock_crowns.get_crown_counts.return_value = (0, 0)
+    mock_match_end.is_match_over.return_value = False
 
 
 def test_episode_terminates_at_3_enemy_crowns():
     env = make_env()
     env.reset()
-    mock_crowns.get_crown_counts.return_value = (0, 3)
+    mock_crowns.get_crown_counts.return_value = (0, 3)  # illustrative: a 0-3 loss
+    mock_match_end.is_match_over.return_value = True
     with patch("time.sleep"):
         _, _, terminated, _, _ = env.step(96)
     assert terminated is True
     mock_crowns.get_crown_counts.return_value = (0, 0)
+    mock_match_end.is_match_over.return_value = False
+
+
+def test_episode_terminates_when_match_over_with_low_crowns():
+    env = make_env()
+    env.reset()
+    mock_crowns.get_crown_counts.return_value = (1, 0)  # 1-crown win, never previously detectable
+    mock_match_end.is_match_over.return_value = True
+    with patch("time.sleep"):
+        _, _, terminated, _, _ = env.step(96)
+    assert terminated is True
+    mock_crowns.get_crown_counts.return_value = (0, 0)
+    mock_match_end.is_match_over.return_value = False
+
+
+def test_episode_not_terminated_when_match_over_is_false():
+    env = make_env()
+    env.reset()
+    mock_crowns.get_crown_counts.return_value = (2, 2)  # unusual crown values, should not matter
+    mock_match_end.is_match_over.return_value = False
+    with patch("time.sleep"):
+        _, _, terminated, _, _ = env.step(96)
+    assert terminated is False
+    mock_crowns.get_crown_counts.return_value = (0, 0)
+
+
+def test_draw_scored_as_loss():
+    env = make_env()
+    env.reset()
+    mock_crowns.get_crown_counts.return_value = (1, 1)
+    mock_match_end.is_match_over.return_value = True
+    with patch("time.sleep"):
+        _, reward, terminated, _, _ = env.step(96)
+    assert terminated is True
+    # prev crowns start at (0, 0); crown delta reward = (1-0)*8 - (1-0)*8 = 0
+    # no kills tracked (empty troop detections), won=False (1 == 1, not >) -> -15.0
+    assert reward == pytest.approx(-15.0)
+    mock_crowns.get_crown_counts.return_value = (0, 0)
+    mock_match_end.is_match_over.return_value = False
+
+
+def test_reset_advances_to_next_battle_when_match_over():
+    env = make_env()
+    mock_match_end.is_match_over.return_value = True
+    mock_match_end.advance_to_next_battle.reset_mock()
+    env.reset()
+    mock_match_end.advance_to_next_battle.assert_called_once()
+    mock_match_end.is_match_over.return_value = False
+
+
+def test_reset_does_not_advance_when_match_not_over():
+    env = make_env()
+    mock_match_end.is_match_over.return_value = False
+    mock_match_end.advance_to_next_battle.reset_mock()
+    env.reset()
+    mock_match_end.advance_to_next_battle.assert_not_called()
+
+
+def test_step_survives_is_match_over_failure():
+    env = make_env()
+    env.reset()
+    mock_match_end.is_match_over.side_effect = RuntimeError("boom")
+    with patch("time.sleep"):
+        obs, reward, terminated, truncated, info = env.step(96)
+    assert obs.shape == (87,)
+    assert terminated is False
+    mock_match_end.is_match_over.side_effect = None
+    mock_match_end.is_match_over.return_value = False
+
+
+def test_reset_survives_advance_to_next_battle_failure():
+    env = make_env()
+    mock_match_end.is_match_over.return_value = True
+    mock_match_end.advance_to_next_battle.side_effect = RuntimeError("boom")
+    obs, info = env.reset()
+    assert obs.shape == (87,)
+    mock_match_end.advance_to_next_battle.side_effect = None
+    mock_match_end.is_match_over.return_value = False
 
 
 def test_step_returns_five_tuple():

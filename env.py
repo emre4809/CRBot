@@ -9,6 +9,7 @@ from crowns import get_crown_counts
 from action import play_card, ARENA_BOUNDS
 from tracker import TroopTracker
 from reward import compute_reward
+from match_end import is_match_over, advance_to_next_battle
 
 GRID_COLS = 6
 GRID_ROWS = 4
@@ -75,8 +76,24 @@ class ClashRoyaleEnv(gym.Env):
         except Exception as e:
             print(f"[env] play_card() failed, skipping action: {e}")
 
+    def _safe_is_match_over(self):
+        try:
+            return is_match_over()
+        except Exception as e:
+            print(f"[env] is_match_over() failed, assuming match still in progress: {e}")
+            return False
+
+    def _safe_advance_to_next_battle(self):
+        try:
+            advance_to_next_battle()
+        except Exception as e:
+            print(f"[env] advance_to_next_battle() failed: {e}")
+            return
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+        if self._safe_is_match_over():
+            self._safe_advance_to_next_battle()
         self._tracker.clear()
         state = self._safe_get_game_state()
         my_crowns, enemy_crowns = self._safe_get_crown_counts()
@@ -103,8 +120,8 @@ class ClashRoyaleEnv(gym.Env):
 
         kills = self._tracker.update(detections, my_crowns, enemy_crowns)
 
-        terminated = my_crowns == 3 or enemy_crowns == 3
-        won = my_crowns == 3
+        terminated = self._safe_is_match_over()
+        won = my_crowns > enemy_crowns
 
         reward = compute_reward(
             self._prev_my_crowns, self._prev_enemy_crowns,
