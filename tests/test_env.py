@@ -280,6 +280,17 @@ def test_step_survives_crown_counts_failure():
     mock_crowns.get_crown_counts.return_value = (0, 0)
 
 
+def test_verbose_false_still_functions():
+    env = ClashRoyaleEnv(verbose=False)
+    obs, _ = env.reset()
+    assert obs.shape == (87,)
+    with patch("time.sleep"):
+        obs, reward, terminated, truncated, info = env.step(96)
+    assert obs.shape == (87,)
+    assert obs.dtype == np.float32
+    assert terminated is False
+
+
 def test_step_survives_play_card_failure():
     env = make_env()
     env.reset()

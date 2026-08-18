@@ -8,7 +8,7 @@ from classify import get_game_state
 from crowns import get_crown_counts
 from action import play_card, ARENA_BOUNDS
 from tracker import TroopTracker
-from reward import compute_reward
+from reward import compute_reward, CROWN_REWARD, CROWN_PENALTY, KILL_REWARD, WIN_REWARD, LOSS_PENALTY
 from match_end import is_match_over, advance_to_next_battle
 
 GRID_COLS = 6
@@ -23,8 +23,9 @@ OBS_SIZE = 87                     # 1 elixir + 1 my_crowns + 1 enemy_crowns + 4 
 class ClashRoyaleEnv(gym.Env):
     metadata = {}
 
-    def __init__(self):
+    def __init__(self, verbose: bool = True):
         super().__init__()
+        self._verbose = verbose
         self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(OBS_SIZE,), dtype=np.float32)
         self.action_space = spaces.Discrete(N_ACTIONS)
 
@@ -88,12 +89,15 @@ class ClashRoyaleEnv(gym.Env):
             advance_to_next_battle()
         except Exception as e:
             print(f"[env] advance_to_next_battle() failed: {e}")
-            return
+            return False
+        return True
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         if self._safe_is_match_over():
-            self._safe_advance_to_next_battle()
+            print("[env] Match-over screen detected — clicking through to next battle...")
+            if self._safe_advance_to_next_battle():
+                print("[env] Advanced to next battle.")
         self._tracker.clear()
         state = self._safe_get_game_state()
         my_crowns, enemy_crowns = self._safe_get_crown_counts()
@@ -127,6 +131,26 @@ class ClashRoyaleEnv(gym.Env):
             self._prev_my_crowns, self._prev_enemy_crowns,
             my_crowns, enemy_crowns, kills, terminated, won,
         )
+
+        if my_crowns > self._prev_my_crowns:
+            print(f"[env] *** CROWN GAINED! my_crowns {self._prev_my_crowns} -> {my_crowns} (reward +{CROWN_REWARD}) ***")
+        if enemy_crowns > self._prev_enemy_crowns:
+            print(f"[env] *** ENEMY CROWN! enemy_crowns {self._prev_enemy_crowns} -> {enemy_crowns} (reward -{CROWN_PENALTY}) ***")
+
+        for k in kills:
+            print(f"[env] *** ENEMY TROOP KILLED: {k['troop']} (+{KILL_REWARD}) ***")
+
+        if self._verbose:
+            print(f"[env] elixir={state['elixir']} my_crowns={my_crowns} enemy_crowns={enemy_crowns} reward={reward:+.2f}")
+
+        if terminated:
+            if my_crowns == enemy_crowns:
+                result = f"LOST (draw) (-{LOSS_PENALTY})"
+            elif won:
+                result = f"WON (+{WIN_REWARD})"
+            else:
+                result = f"LOST (-{LOSS_PENALTY})"
+            print(f"[env] *** MATCH ENDED — {result} *** (final: my_crowns={my_crowns} enemy_crowns={enemy_crowns})")
 
         self._prev_my_crowns = my_crowns
         self._prev_enemy_crowns = enemy_crowns
