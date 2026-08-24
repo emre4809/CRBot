@@ -33,6 +33,11 @@ runs/
 *.pt
 
 # =====================
+# RL training checkpoints
+# =====================
+checkpoints/
+
+# =====================
 # Secrets / credentials
 # =====================
 *accounts*
