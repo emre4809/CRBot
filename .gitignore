@@ -23,7 +23,6 @@ datasets/
 gifs/
 **/*.jpg
 **/*.jpeg
-**/*.png
 **/*.webp
 **/*.mp4
 
