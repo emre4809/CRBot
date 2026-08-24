@@ -1,11 +1,18 @@
 import os
 import re
+import cv2
 from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import CheckpointCallback
+import detect
 from env import ClashRoyaleEnv
 
 CHECKPOINT_DIR = "checkpoints"
 TOTAL_TIMESTEPS = 500_000
+
+# Set True to show a live troop-detection window (mirrors the game with
+# bounding boxes drawn on it) you can put next to your match while training.
+# Off by default -- no window, no extra rendering cost.
+SHOW_DETECTION_WINDOW = False
 
 
 def _derive_replay_buffer_path(model_path):
@@ -30,6 +37,8 @@ def _derive_replay_buffer_path(model_path):
 
 
 def train(resume_from=None):
+    detect.SHOW_DETECTION_WINDOW = SHOW_DETECTION_WINDOW
+
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     env = ClashRoyaleEnv()
 
@@ -91,6 +100,8 @@ def train(resume_from=None):
         model.save(os.path.join(CHECKPOINT_DIR, "dqn_cr_final"))
         model.save_replay_buffer(os.path.join(CHECKPOINT_DIR, "dqn_cr_final_replay_buffer"))
         print("Model (and replay buffer) saved.")
+        if SHOW_DETECTION_WINDOW:
+            cv2.destroyAllWindows()
 
     if completed:
         print("Training complete. Final model saved.")
