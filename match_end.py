@@ -1,66 +1,106 @@
-import pyautogui
-import numpy as np
 import time
 
-# Post-match "OK" button detection pixels (screen-absolute, not region-relative)
-OK_BUTTON_PIXEL_1 = (1026, 959)
-OK_BUTTON_COLOR_1 = np.array([34, 37, 40])
+import pyautogui
 
-OK_BUTTON_PIXEL_2 = (1012, 944)
-OK_BUTTON_COLOR_2 = np.array([78, 175, 255])
+# Template images for the two buttons we care about after a match ends.
+BATTLE_BUTTON_IMAGE = "images/Battle button.png"
+OK_BUTTON_IMAGE = "images/OK button.png"
 
-TOLERANCE = 40  # Kept the tolerance relatively low because these pixels are always same color and same position, there isn't much variability
+MATCH_CONFIDENCE = 0.8  # Fuzzy template-match confidence threshold; tune if too strict/loose.
 
-# Click sequence positions
-OK_CLICK_POS = (1012, 944)         # Presses the OK button
-CHEST_SKIP_CLICK_POS = (797, 690)  # Dismisses/skips chest-reward popups
-CHEST_SKIP_CLICK_COUNT = 10
-BATTLE_CLICK_POS = (1007, 801)     # Presses the "Battle" button to queue the next match
+# Click sequence positions / timings
+CHEST_SKIP_CLICK_POS = (797, 690)  # Dismisses/skips chest-reward and reward-ladder popups
+INTER_CLICK_DELAY = 0.3            # Short delay between clicks in the sequence
 
-INTER_CLICK_DELAY = 0.3    # Short delay between clicks in the sequence
-POST_BATTLE_WAIT = 3.0     # Wait after clicking Battle before the next match is assumed to have started
+MAX_ADVANCE_SECONDS = 120  # Safety cap: give up waiting for the Battle button after this long
 
 
-def color_match(pixel, target, tolerance):
-    """Check if a pixel matches a target color within tolerance, return True if it does or False otherwise"""
-    return np.all(np.abs(np.array(pixel) - target) <= tolerance)
+def is_battle_button_visible():
+    """Return True if the Battle button template matches somewhere on screen."""
+    try:
+        box = pyautogui.locateOnScreen(BATTLE_BUTTON_IMAGE, confidence=MATCH_CONFIDENCE)
+    except pyautogui.ImageNotFoundException:
+        return False
+    return box is not None
+
+
+def is_ok_button_visible():
+    """Return True if the OK button template matches somewhere on screen."""
+    try:
+        box = pyautogui.locateOnScreen(OK_BUTTON_IMAGE, confidence=MATCH_CONFIDENCE)
+    except pyautogui.ImageNotFoundException:
+        return False
+    return box is not None
+
+
+def click_battle_button():
+    """Locate and click the Battle button. Return True if it was found and clicked."""
+    try:
+        box = pyautogui.locateOnScreen(BATTLE_BUTTON_IMAGE, confidence=MATCH_CONFIDENCE)
+    except pyautogui.ImageNotFoundException:
+        return False
+    if box is None:
+        return False
+    pyautogui.click(pyautogui.center(box))
+    return True
+
+
+def click_ok_button():
+    """Locate and click the OK button. Return True if it was found and clicked."""
+    try:
+        box = pyautogui.locateOnScreen(OK_BUTTON_IMAGE, confidence=MATCH_CONFIDENCE)
+    except pyautogui.ImageNotFoundException:
+        return False
+    if box is None:
+        return False
+    pyautogui.click(pyautogui.center(box))
+    return True
 
 
 def is_match_over():
     """
-    Sample the two post-match OK-button pixels and return True only if both
-    match their target colors within tolerance.
+    True when the post-match OK button is visible on screen.
     """
-    pixel_1 = pyautogui.pixel(*OK_BUTTON_PIXEL_1)
-    pixel_2 = pyautogui.pixel(*OK_BUTTON_PIXEL_2)
-
-    return bool(
-        color_match(pixel_1, OK_BUTTON_COLOR_1, TOLERANCE)
-        and color_match(pixel_2, OK_BUTTON_COLOR_2, TOLERANCE)
-    )
+    return is_ok_button_visible()
 
 
 def advance_to_next_battle():
     """
-    Click through the post-match flow: press OK, dismiss chest popups,
-    press Battle to queue the next match, then wait for it to start.
+    Click through the post-match flow: press OK, then repeatedly click the
+    chest-skip position (clicking OK again if a second prompt — e.g. the
+    reward ladder — shows up) until the Battle button appears, then click it
+    to queue the next match.
     """
-    pyautogui.click(*OK_CLICK_POS)
+    click_ok_button()
     time.sleep(INTER_CLICK_DELAY)
 
-    for _ in range(CHEST_SKIP_CLICK_COUNT):
+    start_time = time.time()
+    while True:
+        if is_battle_button_visible():
+            click_battle_button()
+            return
+
+        if time.time() - start_time > MAX_ADVANCE_SECONDS:
+            print(
+                f"[match_end] WARNING: Battle button not detected after "
+                f"{int(time.time() - start_time)}s of clicking — giving up, "
+                f"reset() will proceed anyway. Check template images / screen state."
+            )
+            return
+
+        if is_ok_button_visible():
+            click_ok_button()
+
         pyautogui.click(*CHEST_SKIP_CLICK_POS)
         time.sleep(INTER_CLICK_DELAY)
-
-    pyautogui.click(*BATTLE_CLICK_POS)
-    time.sleep(INTER_CLICK_DELAY)
-
-    time.sleep(POST_BATTLE_WAIT)
 
 
 # FOR TESTING / DEBUGGING
 
 if __name__ == "__main__":
     while True:
-        print(f"is_match_over(): {is_match_over()}")
+        print(
+            f"is_battle_button_visible(): {is_battle_button_visible()}  "
+            f"is_ok_button_visible(): {is_ok_button_visible()}"
+        )
         time.sleep(1)
