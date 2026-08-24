@@ -47,3 +47,14 @@ checkpoints/
 # Git worktrees
 # =====================
 .worktrees/
+
+# =====================
+# Claude Code local state
+# =====================
+.claude/
+CLAUDE.md
+
+# =====================
+# Work-in-progress / not ready for commit
+# =====================
+unused/
