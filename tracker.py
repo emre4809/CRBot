@@ -1,4 +1,4 @@
-MIDLINE_Y = 390  # capture-region midpoint: monitor height 780 / 2
+MIDLINE_Y = 462  # capture-region midpoint
 MATCH_THRESHOLD = 50  # pixels — max distance to match a detection to a tracked troop
 DEATH_FRAMES = 3  # frames_since_seen threshold to declare an enemy dead
 
