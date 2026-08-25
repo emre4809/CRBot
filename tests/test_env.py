@@ -152,6 +152,31 @@ def test_episode_not_terminated_when_match_over_is_false():
     mock_crowns.get_crown_counts.return_value = (0, 0)
 
 
+def test_crown_flicker_does_not_decrease_reward():
+    # crowns.py can transiently misdetect and report a lower crown count
+    # than what was already confirmed this episode -- env.py should clamp
+    # against the flicker rather than trusting it, so a real crown win
+    # can't be undone by a bad frame.
+    env = make_env()
+    env.reset()
+
+    mock_crowns.get_crown_counts.return_value = (1, 0)
+    mock_match_end.is_match_over.return_value = False
+    with patch("time.sleep"):
+        obs, reward, terminated, _, _ = env.step(96)
+    assert reward == pytest.approx(8.0)  # legitimate crown gain
+    assert obs[1] == pytest.approx(1 / 3)
+
+    # Flicker: crowns.py misreads back down to (0, 0) the next step.
+    mock_crowns.get_crown_counts.return_value = (0, 0)
+    with patch("time.sleep"):
+        obs, reward, terminated, _, _ = env.step(96)
+    assert reward == pytest.approx(0.0)  # clamped -- not treated as losing the crown
+    assert obs[1] == pytest.approx(1 / 3)  # observation still reflects the real crown
+
+    mock_crowns.get_crown_counts.return_value = (0, 0)
+
+
 def test_draw_scored_as_loss():
     env = make_env()
     env.reset()

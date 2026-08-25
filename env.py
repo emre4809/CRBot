@@ -122,6 +122,15 @@ class ClashRoyaleEnv(gym.Env):
         detections = self._safe_get_troops()
         my_crowns, enemy_crowns = self._safe_get_crown_counts()
 
+        # Crown counts can never actually decrease mid-match -- crowns.py's
+        # pixel-color detection can flicker (e.g. a UI animation briefly
+        # throwing off the read), so clamp against the highest value seen
+        # so far this episode rather than trusting a lower reading at face
+        # value. Without this, a flicker gets misread as losing a crown you
+        # already earned.
+        my_crowns = max(my_crowns, self._prev_my_crowns)
+        enemy_crowns = max(enemy_crowns, self._prev_enemy_crowns)
+
         kills = self._tracker.update(detections, my_crowns, enemy_crowns)
 
         terminated = self._safe_is_match_over()
