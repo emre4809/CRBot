@@ -1,11 +1,11 @@
-MIDLINE_Y = 462  # capture-region midpoint
+MIDLINE_Y = 466  # capture-region midpoint
 MATCH_THRESHOLD = 50  # pixels — max distance to match a detection to a tracked troop
 DEATH_FRAMES = 3  # frames_since_seen threshold to declare an enemy dead
 
 
 class TroopTracker:
     def __init__(self):
-        self.troops = []
+        self.troops = [] # list of dicts: {id, troop, x, y, team, frames_since_seen}
         self._next_id = 0
 
     def clear(self):
