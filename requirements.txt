@@ -1,1 +1,21 @@
-# Used libraries with versions will go here
+# Core CV / automation
+pyautogui==0.9.54
+opencv-python==4.12.0.88
+numpy==2.1.3
+mss==10.0.0
+
+# YOLO detection/classification
+ultralytics==8.3.170
+
+# PyTorch (CUDA build) -- install separately for GPU support, e.g.:
+#   pip install torch==2.8.0 torchvision==0.23.0 --index-url https://download.pytorch.org/whl/cu128
+# Installing this file alone via plain pip will pull a CPU-only torch build instead.
+torch==2.8.0
+torchvision==0.23.0
+
+# Reinforcement learning
+gymnasium==1.3.0
+stable-baselines3==2.9.0
+
+# Testing
+pytest==9.1.1

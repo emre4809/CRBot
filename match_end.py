@@ -16,7 +16,7 @@ MATCH_CONFIDENCE = 0.8  # Fuzzy template-match confidence threshold; tune if too
 SEARCH_REGION = (738, 740, 1279 - 738, 1008 - 740)
 
 # Click sequence positions / timings
-CHEST_SKIP_CLICK_POS = (797, 690)  # Dismisses/skips chest-reward and reward-ladder popups
+CHEST_SKIP_CLICK_POS = (1016, 891)  # Dismisses/skips chest-reward and reward-ladder popups
 INTER_CLICK_DELAY = 0.3            # Delay between chest-skip clicks in the sequence
 CHECK_INTERVAL = 1.0               # Minimum time between Battle/OK visibility checks
 

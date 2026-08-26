@@ -15,7 +15,7 @@ GRID_COLS = 6
 GRID_ROWS = 4
 N_GRID = GRID_COLS * GRID_ROWS   # 24
 N_ACTIONS = 4 * N_GRID + 1       # 97
-STEP_INTERVAL = 0.5               # seconds between steps
+STEP_INTERVAL = 0.25               # seconds between steps
 MAX_TROOPS = 20
 OBS_SIZE = 87                     # 1 elixir + 1 my_crowns + 1 enemy_crowns + 4 hand + 20*4 troops
 

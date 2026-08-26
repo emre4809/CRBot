@@ -12,7 +12,7 @@ TOTAL_TIMESTEPS = 500_000
 # Set True to show a live troop-detection window (mirrors the game with
 # bounding boxes drawn on it) you can put next to your match while training.
 # Off by default -- no window, no extra rendering cost.
-SHOW_DETECTION_WINDOW = False
+SHOW_DETECTION_WINDOW = True
 
 
 def _derive_replay_buffer_path(model_path):
