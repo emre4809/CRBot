@@ -1,0 +1,10 @@
+This folder is populated automatically by train.py (Ultralytics writes
+each run's output under runs/classify/train/ or runs/detect/train/).
+
+classify.py and detect.py both load from a fixed path -- rename (or copy)
+each run's output folder to "current_model" after training, e.g.
+runs/classify/train/ -> runs/classify/current_model/. See the README's
+"Train the vision models" section.
+
+This file itself is just a placeholder so the folder exists on a fresh
+clone -- training output stays gitignored either way.

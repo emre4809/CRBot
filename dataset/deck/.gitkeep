@@ -1,0 +1,8 @@
+Place the downloaded "Cards / deck classification" dataset here (YOLOv11
+classification format) -- see the README's "Get the training data" section
+for the download link. train.py expects this folder to be the classification
+dataset root (data="dataset/deck").
+
+This file itself is just a placeholder so the folder exists on a fresh
+clone -- delete it once real dataset content is here (or leave it, it's
+harmless).

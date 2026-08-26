@@ -18,7 +18,16 @@ venv/
 # =====================
 # Datasets & media
 # =====================
-dataset/
+# dataset/deck/ and dataset/troops/ are tracked as empty placeholder
+# folders (see their .gitkeep files) so a fresh clone already has them --
+# their actual contents (the downloaded datasets) stay ignored.
+dataset/*
+!dataset/deck/
+!dataset/troops/
+dataset/deck/*
+!dataset/deck/.gitkeep
+dataset/troops/*
+!dataset/troops/.gitkeep
 datasets/
 gifs/
 **/*.jpg
@@ -29,7 +38,10 @@ gifs/
 # =====================
 # YOLO / Ultralytics
 # =====================
-runs/
+# runs/ is tracked as an empty placeholder folder (see its .gitkeep) --
+# actual training output stays ignored.
+runs/*
+!runs/.gitkeep
 *.pt
 
 # =====================

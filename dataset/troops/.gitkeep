@@ -1,0 +1,8 @@
+Place the downloaded "Troops / detection" dataset here (YOLOv11 detection
+format, including its data.yaml) -- see the README's "Get the training
+data" section for the download link. train.py expects
+dataset/troops/data.yaml to exist as the detection dataset config.
+
+This file itself is just a placeholder so the folder exists on a fresh
+clone -- delete it once real dataset content is here (or leave it, it's
+harmless).

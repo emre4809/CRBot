@@ -103,14 +103,14 @@ pip install -r requirements.txt
 
 ### 2. Get the training data
 
-The card-classification and troop-detection datasets aren't included in this repo (too large, and gitignored). They're published on Roboflow:
+The card-classification and troop-detection datasets aren't included in this repo (too large, and gitignored) — but `dataset/deck/` and `dataset/troops/` already exist as empty placeholder folders after cloning, so you don't need to create them yourself. They're published on Roboflow:
 
 - **Cards / deck classification**: [cards-clash-royale](https://universe.roboflow.com/my-workspace-0qlfe/cards-clash-royale-khffw) — images resized to 224×224, with a small random-brightness augmentation (±15%) applied to create 3 versions of each source image.
 - **Troops / detection**: [clash-royale troop detection](https://universe.roboflow.com/my-workspace-0qlfe/clash-royale-bhjq1-9fj61) — annotated in YOLOv11 format, images resized to 512×512, no augmentation.
 
-Download each in YOLOv11 format and place them at:
+Download each in YOLOv11 format and drop the contents into:
 - `dataset/deck/` (classification — matches `train.py`'s `data="dataset/deck"`)
-- `dataset/troops/data.yaml` (detection — matches `train.py`'s `data="dataset/troops/data.yaml"`)
+- `dataset/troops/` (detection — matches `train.py`'s `data="dataset/troops/data.yaml"`, so the downloaded `data.yaml` should end up directly at `dataset/troops/data.yaml`)
 
 ### 3. Train the vision models
 
@@ -126,7 +126,7 @@ python train.py   # with RUN_CLASSIFICATION = 1
 python train.py   # with RUN_CLASSIFICATION = 0
 ```
 
-Ultralytics saves each run's output under `runs/classify/train/` / `runs/detect/train/` by default. `classify.py` and `detect.py` both load from a fixed path — `runs/classify/current_model/weights/best.pt` and `runs/detect/current_model/weights/best.pt` — so **rename (or copy) each run's output folder to `current_model`** after training, e.g. `runs/classify/train/` → `runs/classify/current_model/`.
+`runs/` also already exists as an empty placeholder folder after cloning. Ultralytics saves each run's output under `runs/classify/train/` / `runs/detect/train/` by default. `classify.py` and `detect.py` both load from a fixed path — `runs/classify/current_model/weights/best.pt` and `runs/detect/current_model/weights/best.pt` — so **rename (or copy) each run's output folder to `current_model`** after training, e.g. `runs/classify/train/` → `runs/classify/current_model/`.
 
 ### 4. Calibrate for your screen
 
